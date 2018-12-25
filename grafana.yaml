@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: grafana
-        image: grafana/grafana:latest 
+        image:  wanghkkk/heapster-grafana-amd64-v4.4.3:v4.4.3 
         ports:
         - containerPort: 3000
           protocol: TCP
