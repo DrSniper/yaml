@@ -70,7 +70,7 @@ yum install -y kubectl-1.12.1-0 kubelet-1.12.1-0 kubeadm-1.12.1-0
 systemctl enable kubelet && systemctl start kubelet
 
 echo "###6.准备k8s.grc.io镜像"
-wget -O - https://raw.githubusercontent.com/FingerLiu/k8s.gcr.io/master/pull.sh | bash
+bash yaml/pull-images.sh
 
 echo "###7.初始化master节点"
 kubeadm init \
@@ -87,35 +87,14 @@ echo "###9.将master节点同时设置为计算节点"
 kubectl taint nodes `hostname` node-role.kubernetes.io/master-
 
 echo "###10.添加网络插件[fannel]"
-wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
-kubectl apply -f  kube-flannel.yml
+kubectl apply -f  yaml/flannel.yaml
 
 echo "###11.安装dashboard"
-git clone https://github.com/DrSniper/dashboard-yaml.git
-kubectl apply -f  /root/dashboard-yaml/k8s-dashboard.yaml
-
-echo "###12.创建管理员角色"
-cat <<EOF >k8s-dashboard-admin-rbac.yaml 
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  name: kubernetes-dashboard
-  labels:
-    k8s-app: kubernetes-dashboard
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: cluster-admin
-subjects:
-- kind: ServiceAccount
-  name: kubernetes-dashboard
-  namespace: kube-system
-EOF
-kubectl apply -f k8s-dashboard-admin-rbac.yaml
+kubectl apply -f  yaml/k8s-dashboard.yaml
 
 echo "StrictHostKeyChecking no" >>/etc/ssh/ssh_config
 if [ $CHOICE == 1 ];then
-	 echo "###13.添加node节点"
+	 echo "###12.添加node节点"
 	 for i in $NODE_IP
 	 do
 	 	sshpass -p "$NODE_PASSWD" scp /root/up-k8s-node.sh root@$i:/root
@@ -125,11 +104,11 @@ if [ $CHOICE == 1 ];then
  	sleep 200
 fi
 
-echo "###14.检查服务状态"
+echo "###13.检查服务状态"
 kubectl get nodes
 kubectl get pods --all-namespaces
 
-echo "###15.访问"
+echo "###14.访问"
 echo -e "请使用火狐浏览器访问dashboard界面：\n https://`hostname -i`:30001 "
 SECRET=`kubectl get secret -n kube-system|grep dashboard-token|awk '{print $1}'`
 TOKEN=`kubectl describe secret -n kube-system $SECRET|grep "token:"|awk '{print $2}'`
